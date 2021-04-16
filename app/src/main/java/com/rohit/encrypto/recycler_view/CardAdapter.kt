@@ -18,15 +18,15 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
     var unHideTrustedUserInfoClickListener: UnHideClickListener? = null
 
     interface DeleteClickListener {
-        fun onBtnClick(trustedUserEntity: NoteEntity)
+        fun onBtnClick(noteEntity: NoteEntity)
     }
 
     interface EditClickListener {
-        fun onBtnClick(trustedUserEntity: NoteEntity)
+        fun onBtnClick(noteEntity: NoteEntity)
     }
 
     interface UnHideClickListener {
-        fun onBtnClick(trustedUserEntity: NoteEntity)
+        fun onBtnClick(noteEntity: NoteEntity)
     }
 
     override fun getItemCount(): Int {

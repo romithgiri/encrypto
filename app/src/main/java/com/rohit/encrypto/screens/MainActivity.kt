@@ -1,4 +1,4 @@
-package com.rohit.encrypto
+package com.rohit.encrypto.screens
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.rohit.encrypto.R
 import com.rohit.encrypto.database.NoteDB
 import com.rohit.encrypto.database.NoteEntity
 import com.rohit.encrypto.recycler_view.CardAdapter
@@ -19,7 +20,7 @@ class MainActivity : AppCompatActivity() {
     private var noteList: MutableList<NoteEntity> = ArrayList()
 
     private var recyclerView: RecyclerView? = null
-    private var adapter: RecyclerView.Adapter<*>? = null
+    private lateinit var adapter: CardAdapter
     private var recyclerViewLayoutManager: RecyclerView.LayoutManager? = null
     private lateinit var btnCreate: FloatingActionButton
 
@@ -59,6 +60,18 @@ class MainActivity : AppCompatActivity() {
                         noteList
                     )
                     recyclerView!!.adapter = adapter
+
+                    adapter.deleteTrustedUserClickListener = object : CardAdapter.DeleteClickListener {
+                        override fun onBtnClick(noteEntity: NoteEntity) {
+                            var currentData = noteEntity
+                            GlobalScope.launch {
+                                noteDB.noteDAO().deleteNote(noteEntity)
+                                runOnUiThread {
+                                    setDataInRecyclerView()
+                                }
+                            }
+                        }
+                    }
                 } catch (e: Exception) {
                     println("================== noteList 4: $e")
                 }

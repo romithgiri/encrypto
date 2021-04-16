@@ -1,11 +1,13 @@
-package com.rohit.encrypto
+package com.rohit.encrypto.screens
 
 import android.os.Bundle
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.room.Room
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.rohit.encrypto.R
 import com.rohit.encrypto.database.NoteDB
 import com.rohit.encrypto.database.NoteEntity
 import kotlinx.coroutines.GlobalScope
@@ -17,9 +19,10 @@ import java.util.*
 class CreateNote : AppCompatActivity() {
     private lateinit var noteDB: NoteDB
 
-    private lateinit var btnSave : FloatingActionButton
-    private lateinit var editTitle : EditText
-    private lateinit var editDescription : EditText
+    private lateinit var btnSave: FloatingActionButton
+    private lateinit var editTitle: EditText
+    private lateinit var editDescription: EditText
+    private lateinit var backBtn: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,15 +32,20 @@ class CreateNote : AppCompatActivity() {
         btnSave = findViewById(R.id.btnSave)
         editTitle = findViewById(R.id.editTitle)
         editDescription = findViewById(R.id.editDescription)
+        backBtn = findViewById(R.id.btnCreateBack)
+
+        backBtn.setOnClickListener {
+            finish()
+        }
 
         btnSave.setOnClickListener {
-            if (editTitle.text.isNullOrBlank() || editDescription.text.isNullOrBlank()){
-                if (editTitle.text.isNullOrBlank()){
+            if (editTitle.text.isNullOrBlank() || editDescription.text.isNullOrBlank()) {
+                if (editTitle.text.isNullOrBlank()) {
                     Toast.makeText(this, "Please Enter Title...", Toast.LENGTH_SHORT).show()
-                }else{
+                } else {
                     Toast.makeText(this, "Please Enter Note...", Toast.LENGTH_SHORT).show()
                 }
-            }else{
+            } else {
                 GlobalScope.launch {
                     try {
                         val pattern = "dd-MMM-yyyy"
@@ -55,7 +63,7 @@ class CreateNote : AppCompatActivity() {
                         noteDB.noteDAO().updateAndSaveNote(noteEntity)
                         finish()
 
-                    }catch (e: Exception){
+                    } catch (e: Exception) {
                         println("+++++++++++++++++++++++++++++++: Error: $e")
                     }
                 }
