@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.rohit.encrypto.R
 import com.rohit.encrypto.database.NoteEntity
@@ -26,7 +27,7 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
     }
 
     interface UnHideClickListener {
-        fun onBtnClick(noteEntity: NoteEntity)
+        fun onBtnClick(noteEntity: NoteEntity, cardView: CardView)
     }
 
     override fun getItemCount(): Int {
@@ -40,6 +41,7 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
         val delete: ImageButton = itemView.findViewById(R.id.btnDelete)
         val edit: ImageButton = itemView.findViewById(R.id.btnEdit)
         val unHide: ImageButton = itemView.findViewById(R.id.btnUnHide)
+        val cardView: CardView = itemView.findViewById(R.id.mCardView)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -61,7 +63,7 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
         }
 
         holder.unHide.setOnClickListener {
-            unHideTrustedUserInfoClickListener?.onBtnClick(noteList[position])
+            unHideTrustedUserInfoClickListener?.onBtnClick(noteList[position], holder.cardView)
         }
     }
 

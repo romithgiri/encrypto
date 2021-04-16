@@ -1,8 +1,14 @@
 package com.rohit.encrypto.screens
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ObjectAnimator
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
@@ -85,6 +91,24 @@ class MainActivity : AppCompatActivity() {
                             intent.putExtra("date", noteEntity.noteDate)
                             startActivity(intent)
                         }
+                    }
+
+                    adapter.unHideTrustedUserInfoClickListener = object : CardAdapter.UnHideClickListener{
+                        override fun onBtnClick(noteEntity: NoteEntity, cardView: CardView) {
+                            val oa1 = ObjectAnimator.ofFloat(cardView, "scaleX", 1f, 0f)
+                            val oa2 = ObjectAnimator.ofFloat(cardView, "scaleX", 0f, 1f)
+                            oa1.interpolator = DecelerateInterpolator()
+                            oa2.interpolator = AccelerateDecelerateInterpolator()
+                            oa1.addListener(object : AnimatorListenerAdapter() {
+                                override fun onAnimationEnd(animation: Animator) {
+                                    super.onAnimationEnd(animation)
+                                    //cardView.setImageResource(R.drawable.frontSide)
+                                    oa2.start()
+                                }
+                            })
+                            oa1.start()
+                        }
+
                     }
                 } catch (e: Exception) {
                     println("================== noteList 4: $e")
