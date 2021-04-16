@@ -7,9 +7,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.room.Room
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.gson.Gson
 import com.rohit.encrypto.R
 import com.rohit.encrypto.database.NoteDB
 import com.rohit.encrypto.database.NoteEntity
+import com.rohit.encrypto.encryption_decryption.EncAndDecUtil
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.lang.Exception
@@ -36,9 +38,19 @@ class CreateNote : AppCompatActivity() {
 
         var extract = intent.extras
         action = extract!!.getString("action").toString()
-        if (action == "edit"){
+        if (action == "edit") {
             editTitle.setText(extract.getString("title").toString())
-            editDescription.setText(extract.getString("description").toString())
+            val obj: EncAndDecUtil.SecuredData = Gson().fromJson(extract.getString("description"), EncAndDecUtil.SecuredData::class.java)
+            var decryptedDataStr = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                EncAndDecUtil().decryptString(
+                    obj.value,
+                    obj.encryptedValue
+                )
+            } else {
+                null
+            }
+            println("======================== val 1: $decryptedDataStr")
+            editDescription.setText(decryptedDataStr)
         }
 
         backBtn.setOnClickListener {
@@ -55,24 +67,20 @@ class CreateNote : AppCompatActivity() {
             } else {
                 GlobalScope.launch {
                     try {
-                        if (action == "edit"){
-                            var noteEntity = NoteEntity()
+                        var noteEntity = NoteEntity()
+                        if (action == "edit") {
                             noteEntity.pkId = extract.getLong("pk")
                             noteEntity.noteDate = extract.getString("date")
-                            noteEntity.noteTitle = editTitle.text.toString()
-                            noteEntity.noteDescription = editDescription.text.toString()
-                            noteDB.noteDAO().updateAndSaveNote(noteEntity)
-                        }else{
+                        } else {
                             val pattern = "dd-MMM-yyyy"
                             val simpleDateFormat = SimpleDateFormat(pattern)
                             val date: String = simpleDateFormat.format(Date())
-                            var noteEntity = NoteEntity()
                             noteEntity.pkId = Date().time
                             noteEntity.noteDate = date
-                            noteEntity.noteTitle = editTitle.text.toString()
-                            noteEntity.noteDescription = editDescription.text.toString()
-                            noteDB.noteDAO().updateAndSaveNote(noteEntity)
                         }
+                        noteEntity.noteTitle = editTitle.text.toString()
+                        noteEntity.noteDescription = Gson().toJson(EncAndDecUtil().encryptString(editDescription.text.toString()))
+                        noteDB.noteDAO().updateAndSaveNote(noteEntity)
                         finish()
                     } catch (e: Exception) {
                         println("+++++++++++++++++++++++++++++++: Error: $e")

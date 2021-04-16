@@ -8,14 +8,15 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
-import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.gson.Gson
 import com.rohit.encrypto.R
 import com.rohit.encrypto.database.NoteDB
 import com.rohit.encrypto.database.NoteEntity
+import com.rohit.encrypto.encryption_decryption.EncAndDecUtil
 import com.rohit.encrypto.recycler_view.CardAdapter
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -71,7 +72,6 @@ class MainActivity : AppCompatActivity() {
 
                     adapter.deleteTrustedUserClickListener = object : CardAdapter.DeleteClickListener {
                         override fun onBtnClick(noteEntity: NoteEntity) {
-                            var currentData = noteEntity
                             GlobalScope.launch {
                                 noteDB.noteDAO().deleteNote(noteEntity)
                                 runOnUiThread {
@@ -94,15 +94,33 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     adapter.unHideTrustedUserInfoClickListener = object : CardAdapter.UnHideClickListener{
-                        override fun onBtnClick(noteEntity: NoteEntity, cardView: CardView) {
-                            val oa1 = ObjectAnimator.ofFloat(cardView, "scaleX", 1f, 0f)
-                            val oa2 = ObjectAnimator.ofFloat(cardView, "scaleX", 0f, 1f)
+                        override fun onBtnClick(
+                            noteEntity: NoteEntity,
+                            holder: CardAdapter.ViewHolder,
+                            toggle: Boolean
+                        ) {
+                            val oa1 = ObjectAnimator.ofFloat(holder.cardView, "scaleX", 1f, 0f)
+                            val oa2 = ObjectAnimator.ofFloat(holder.cardView, "scaleX", 0f, 1f)
                             oa1.interpolator = DecelerateInterpolator()
                             oa2.interpolator = AccelerateDecelerateInterpolator()
                             oa1.addListener(object : AnimatorListenerAdapter() {
                                 override fun onAnimationEnd(animation: Animator) {
                                     super.onAnimationEnd(animation)
-                                    //cardView.setImageResource(R.drawable.frontSide)
+                                    if (toggle){
+                                        val obj: EncAndDecUtil.SecuredData = Gson().fromJson(noteEntity.noteDescription, EncAndDecUtil.SecuredData::class.java)
+                                        var decryptedDataStr = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                                            EncAndDecUtil().decryptString(
+                                                obj.value,
+                                                obj.encryptedValue
+                                            )
+                                        } else {
+                                            null
+                                        }
+                                        holder.description.text = decryptedDataStr
+                                        //cardView.setImageResource(R.drawable.frontSide)
+                                    }else{
+                                        holder.description.text = "*********************"
+                                    }
                                     oa2.start()
                                 }
                             })

@@ -17,6 +17,7 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
     var editTrustedUserInfoClickListener: EditClickListener? = null
     var deleteTrustedUserClickListener: DeleteClickListener? = null
     var unHideTrustedUserInfoClickListener: UnHideClickListener? = null
+    var toggleArray= Array(noteList.size){false}
 
     interface DeleteClickListener {
         fun onBtnClick(noteEntity: NoteEntity)
@@ -27,7 +28,7 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
     }
 
     interface UnHideClickListener {
-        fun onBtnClick(noteEntity: NoteEntity, cardView: CardView)
+        fun onBtnClick(noteEntity: NoteEntity, cardView: ViewHolder, toggle: Boolean)
     }
 
     override fun getItemCount(): Int {
@@ -52,7 +53,7 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.date.text = noteList[position].noteDate
         holder.title.text = noteList[position].noteTitle
-        holder.description.text = noteList[position].noteDescription
+        holder.description.text = "*********************"
 
         holder.delete.setOnClickListener {
             deleteTrustedUserClickListener?.onBtnClick(noteList[position])
@@ -63,7 +64,8 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
         }
 
         holder.unHide.setOnClickListener {
-            unHideTrustedUserInfoClickListener?.onBtnClick(noteList[position], holder.cardView)
+            toggleArray[position] = !toggleArray[position]
+            unHideTrustedUserInfoClickListener?.onBtnClick(noteList[position], holder, toggleArray[position])
         }
     }
 
