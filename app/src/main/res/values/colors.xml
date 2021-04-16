@@ -8,6 +8,13 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="light_orange">#FC9A03</color>
-    <color name="deep_orange">#F47C02</color>
+<!--    <color name="light_orange">#FC9A03</color>
+    <color name="deep_orange">#F47C02</color>-->
+
+    <color name="notification_bar">#234050</color>
+    <color name="app_background">#7FBDC3</color>
+    <color name="primary">#EC7F55</color>
+    <color name="secondary">#F6F8F3</color>
+    <color name="optional">#1FBA7F</color>
+
 </resources>

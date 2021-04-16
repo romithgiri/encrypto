@@ -4,15 +4,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/light_orange"
+    android:background="@color/app_background"
     tools:context=".screens.MainActivity">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/mHomeScreenToolBar"
         android:layout_width="match_parent"
         android:layout_height="@dimen/_44sdp"
-        android:background="@color/light_orange"
-        android:backgroundTint="@color/light_orange"
+        android:background="@color/app_background"
+        android:backgroundTint="@color/app_background"
         android:elevation="@dimen/_6sdp"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -76,6 +76,8 @@
         android:layout_height="wrap_content"
         app:layout_constraintTop_toBottomOf="@+id/mHomeScreenToolBar" />
 
+    <include layout="@layout/layout_fab_submenu"/>
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnCrete"
         android:layout_width="wrap_content"
@@ -83,10 +85,11 @@
         android:layout_marginEnd="@dimen/_10sdp"
         android:layout_marginRight="@dimen/_10sdp"
         android:layout_marginBottom="@dimen/_10sdp"
-        android:backgroundTint="@color/light_orange"
+        android:backgroundTint="@color/notification_bar"
         android:scaleType="fitCenter"
         android:src="@drawable/add"
         app:borderWidth="0dp"
+        android:visibility="gone"
         app:elevation="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -98,8 +101,8 @@
         android:gravity="center"
         android:text="No note created yet 😔"
         android:textColor="@color/white"
-        android:textSize="@dimen/_20ssp"
-        android:textStyle="bold"
+        android:textSize="@dimen/_18ssp"
+        android:textStyle="normal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

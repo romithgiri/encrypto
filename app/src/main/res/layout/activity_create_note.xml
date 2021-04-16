@@ -10,8 +10,8 @@
         android:id="@+id/mCreateToolBar"
         android:layout_width="match_parent"
         android:layout_height="@dimen/_44sdp"
-        android:background="@color/light_orange"
-        android:backgroundTint="@color/light_orange"
+        android:background="@color/app_background"
+        android:backgroundTint="@color/app_background"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
@@ -63,7 +63,7 @@
         android:layout_marginEnd="@dimen/_10sdp"
         android:layout_marginRight="@dimen/_10sdp"
         android:layout_marginBottom="@dimen/_10sdp"
-        android:backgroundTint="@color/light_orange"
+        android:backgroundTint="@color/notification_bar"
         android:scaleType="fitCenter"
         android:src="@drawable/save"
         app:borderWidth="0dp"

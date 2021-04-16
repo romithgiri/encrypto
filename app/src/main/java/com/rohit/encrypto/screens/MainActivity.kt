@@ -1,22 +1,25 @@
 package com.rohit.encrypto.screens
 
+import android.Manifest
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
-import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -31,6 +34,7 @@ import com.rohit.encrypto.utils.EncAndDecUtil
 import com.rohit.encrypto.utils.SearchState
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import java.io.*
 import java.util.concurrent.Executor
 
 
@@ -47,47 +51,65 @@ class MainActivity : AppCompatActivity() {
     private lateinit var biometricManager: BiometricManager
     private lateinit var biometricPrompt: BiometricPrompt
 
-    private lateinit var txtTitle : TextView
-    private lateinit var txtSearch : EditText
-    private lateinit var btnSearch : ImageButton
-    private lateinit var btnClear : ImageButton
+    private lateinit var txtNoData: TextView
+    private lateinit var txtTitle: TextView
+    private lateinit var txtSearch: EditText
+    private lateinit var btnSearch: ImageButton
+    private lateinit var btnClear: ImageButton
+
+    private var fabExpanded = false
+    private var fabMenu: FloatingActionButton? = null
+    private var fabCreate: FloatingActionButton? = null
+    /*private var fabRestore: FloatingActionButton? = null
+    private var fabBackup: FloatingActionButton? = null*/
+    private var layoutFabCreateNote: LinearLayout? = null
+    /*private var layoutFabRestore: LinearLayout? = null
+    private var layoutFabBackup: LinearLayout? = null*/
+
+    // Storage Permissions
+    private val REQUEST_PERMISSION = 1
+    private val PERMISSIONS = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        //id init
+        txtNoData = findViewById(R.id.txtNoData)
         txtTitle = findViewById(R.id.txtTitle)
         txtSearch = findViewById(R.id.txtSearch)
         btnSearch = findViewById(R.id.btnSearch)
         btnClear = findViewById(R.id.btnClear)
-
+        //for floating button
+        fabMenu = findViewById<View>(R.id.fabMenu) as FloatingActionButton
+        fabCreate = findViewById<View>(R.id.fabCreateNote) as FloatingActionButton
+        /*fabBackup = findViewById<View>(R.id.fabBackup) as FloatingActionButton
+        fabRestore = findViewById<View>(R.id.fabRestore) as FloatingActionButton*/
+        layoutFabCreateNote = findViewById<View>(R.id.layoutFabCreateNote) as LinearLayout
+        /*layoutFabRestore = findViewById<View>(R.id.layoutFabRestore) as LinearLayout
+        layoutFabBackup = findViewById<View>(R.id.layoutFabBackup) as LinearLayout*/
+        //room DB
         noteDB = Room.databaseBuilder(this, NoteDB::class.java, "NoteDB").build()
         btnCreate = findViewById(R.id.btnCrete)
         recyclerView = findViewById(R.id.mRecyclerView)
         recyclerViewLayoutManager = LinearLayoutManager(this)
         recyclerView!!.layoutManager = recyclerViewLayoutManager
-
+        //for auth
         executor = ContextCompat.getMainExecutor(this)
         biometricManager = BiometricManager.from(this)
-
+        //other init method
         authCheck()
         searchUIState(SearchState.CLEAR)
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
 
-        btnCreate.setOnClickListener {
+        fabCreate!!.setOnClickListener {
             var intent = Intent(this, CreateNote::class.java)
             intent.putExtra("action", "save")
             startActivity(intent)
         }
 
         txtSearch.addTextChangedListener(object : TextWatcher {
-            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-
-            }
-
-            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
-
-            }
-
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
             override fun afterTextChanged(s: Editable) {
                 filter(s.toString())
             }
@@ -100,11 +122,45 @@ class MainActivity : AppCompatActivity() {
         btnClear.setOnClickListener {
             searchUIState(SearchState.CLEAR)
         }
+
+        fabMenu!!.setOnClickListener {
+            if (fabExpanded) {
+                closeSubMenusFab()
+            } else {
+                openSubMenusFab()
+            }
+        }
+
+        /*fabBackup!!.setOnClickListener {
+            createBackup()
+        }*/
+
+        //Only main FAB is visible in the beginning
+        closeSubMenusFab()
     }
 
     override fun onResume() {
         super.onResume()
         setDataInRecyclerView()
+    }
+
+    //closes FAB submenus
+    private fun closeSubMenusFab() {
+        layoutFabCreateNote!!.visibility = View.INVISIBLE
+        /*layoutFabRestore!!.visibility = View.INVISIBLE
+        layoutFabBackup!!.visibility = View.INVISIBLE*/
+        fabMenu!!.setImageResource(R.drawable.menu)
+        fabExpanded = false
+    }
+
+    //Opens FAB submenus
+    private fun openSubMenusFab() {
+        layoutFabCreateNote!!.visibility = View.VISIBLE
+        /*layoutFabRestore!!.visibility = View.VISIBLE
+        layoutFabBackup!!.visibility = View.VISIBLE*/
+        //Change settings icon to 'X' icon
+        fabMenu!!.setImageResource(R.drawable.clear)
+        fabExpanded = true
     }
 
     private fun setDataInRecyclerView() {
@@ -119,6 +175,14 @@ class MainActivity : AppCompatActivity() {
                     recyclerView!!.adapter = adapter
                     adapter.notifyDataSetChanged()
 
+                    if (noteList.isNullOrEmpty()){
+                        txtNoData.visibility = View.VISIBLE
+                        recyclerView!!.visibility = View.GONE
+                    }else{
+                        txtNoData.visibility = View.GONE
+                        recyclerView!!.visibility = View.VISIBLE
+                    }
+
                     adapter.deleteTrustedUserClickListener = object : CardAdapter.DeleteClickListener {
                         override fun onBtnClick(noteEntity: NoteEntity) {
                             GlobalScope.launch {
@@ -130,7 +194,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
-                    adapter.editTrustedUserInfoClickListener = object : CardAdapter.EditClickListener{
+                    adapter.editTrustedUserInfoClickListener = object : CardAdapter.EditClickListener {
                         override fun onBtnClick(noteEntity: NoteEntity) {
                             var intent = Intent(this@MainActivity, CreateNote::class.java)
                             intent.putExtra("action", "edit")
@@ -142,7 +206,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
-                    adapter.unHideTrustedUserInfoClickListener = object : CardAdapter.UnHideClickListener{
+                    adapter.unHideTrustedUserInfoClickListener = object : CardAdapter.UnHideClickListener {
                         override fun onBtnClick(
                                 noteEntity: NoteEntity,
                                 holder: CardAdapter.ViewHolder,
@@ -185,8 +249,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun searchUIState(state: SearchState){
-        when(state){
+    private fun searchUIState(state: SearchState) {
+        when (state) {
             SearchState.CLEAR -> {
                 txtTitle.visibility = View.VISIBLE
                 btnSearch.visibility = View.VISIBLE
@@ -212,6 +276,71 @@ class MainActivity : AppCompatActivity() {
             }
         }
         adapter.updateDataInRecyclerView(temp)
+    }
+
+    private fun createBackup() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (verifyStoragePermissions()){
+                dbBackupTask()
+            }else{
+                dbBackupTask()
+            }
+        }
+    }
+
+    private fun dbBackupTask(){
+        try {
+            noteDB.close()
+            val dbfile: File = getDatabasePath("NoteDB")
+            val sdir: File = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "DBBackup")
+            val sfpath = sdir.path + File.separator + "DBBackup" + System.currentTimeMillis().toString()
+            println("====================== DB Backup Path: $sfpath")
+            if (!sdir.exists()) {
+                sdir.mkdirs()
+            }
+            val savefile = File(sfpath)
+            savefile.createNewFile()
+            val buffersize = 8 * 1024
+            val buffer = ByteArray(buffersize)
+            var bytes_read = buffersize
+            val savedb: OutputStream = FileOutputStream(sfpath)
+            val indb: InputStream = FileInputStream(dbfile)
+            while (indb.read(buffer, 0, buffersize).also { bytes_read = it } > 0) {
+                savedb.write(buffer, 0, bytes_read)
+            }
+            savedb.flush()
+            indb.close()
+            savedb.close()
+            showToast("Database backup file path is: $sfpath")
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+        }
+    }
+
+
+    private fun verifyStoragePermissions(): Boolean {
+        val permissionWrite = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        val permissionRead = ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+        return if (permissionWrite != PackageManager.PERMISSION_GRANTED || permissionRead != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    PERMISSIONS,
+                    REQUEST_PERMISSION
+            )
+            false
+        } else {
+            true
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String?>, grantResults: IntArray) {
+        if (requestCode == 1) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                dbBackupTask()
+            }else{
+                showToast("Please grant storage permission to create database backup")
+            }
+        }
     }
 
 

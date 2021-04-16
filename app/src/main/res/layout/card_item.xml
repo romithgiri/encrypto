@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    android:backgroundTint="@color/deep_orange"
+    android:backgroundTint="@color/primary"
     cardView:cardCornerRadius="10dp"
     cardView:cardElevation="@dimen/_5sdp">
 

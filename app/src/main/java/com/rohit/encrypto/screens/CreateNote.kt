@@ -1,6 +1,7 @@
 package com.rohit.encrypto.screens
 
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Toast
@@ -38,6 +39,9 @@ class CreateNote : AppCompatActivity() {
 
         var extract = intent.extras
         action = extract!!.getString("action").toString()
+
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+
         if (action == "edit") {
             editTitle.setText(extract.getString("title").toString())
             val obj: EncAndDecUtil.SecuredData = Gson().fromJson(extract.getString("description"), EncAndDecUtil.SecuredData::class.java)
