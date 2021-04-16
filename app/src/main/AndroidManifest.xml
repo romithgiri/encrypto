@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.rohit.encrypto">
 
+    <uses-feature
+        android:name="android.hardware.fingerprint"
+        android:required="true" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -9,14 +13,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Encrypto">
-        <activity android:name=".screens.CreateNote"></activity>
-        <activity android:name=".screens.MainActivity">
+
+        <activity android:name=".screens.Auth">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".screens.MainActivity" />
+        <activity android:name=".screens.CreateNote" />
     </application>
 
 </manifest>
