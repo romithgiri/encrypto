@@ -35,7 +35,9 @@ class MainActivity : AppCompatActivity() {
         recyclerView!!.layoutManager = recyclerViewLayoutManager
 
         btnCreate.setOnClickListener {
-            startActivity(Intent(this, CreateNote::class.java))
+            var intent = Intent(this, CreateNote::class.java)
+            intent.putExtra("action", "save")
+            startActivity(intent)
         }
     }
 
@@ -70,6 +72,18 @@ class MainActivity : AppCompatActivity() {
                                     setDataInRecyclerView()
                                 }
                             }
+                        }
+                    }
+
+                    adapter.editTrustedUserInfoClickListener = object : CardAdapter.EditClickListener{
+                        override fun onBtnClick(noteEntity: NoteEntity) {
+                            var intent = Intent(this@MainActivity, CreateNote::class.java)
+                            intent.putExtra("action", "edit")
+                            intent.putExtra("pk", noteEntity.pkId)
+                            intent.putExtra("title", noteEntity.noteTitle)
+                            intent.putExtra("description", noteEntity.noteDescription)
+                            intent.putExtra("date", noteEntity.noteDate)
+                            startActivity(intent)
                         }
                     }
                 } catch (e: Exception) {

@@ -18,7 +18,7 @@ import java.util.*
 
 class CreateNote : AppCompatActivity() {
     private lateinit var noteDB: NoteDB
-
+    private lateinit var action: String
     private lateinit var btnSave: FloatingActionButton
     private lateinit var editTitle: EditText
     private lateinit var editDescription: EditText
@@ -34,6 +34,13 @@ class CreateNote : AppCompatActivity() {
         editDescription = findViewById(R.id.editDescription)
         backBtn = findViewById(R.id.btnCreateBack)
 
+        var extract = intent.extras
+        action = extract!!.getString("action").toString()
+        if (action == "edit"){
+            editTitle.setText(extract.getString("title").toString())
+            editDescription.setText(extract.getString("description").toString())
+        }
+
         backBtn.setOnClickListener {
             finish()
         }
@@ -48,21 +55,25 @@ class CreateNote : AppCompatActivity() {
             } else {
                 GlobalScope.launch {
                     try {
-                        val pattern = "dd-MMM-yyyy"
-                        val simpleDateFormat = SimpleDateFormat(pattern)
-                        val date: String = simpleDateFormat.format(Date())
-                        var noteEntity = NoteEntity()
-                        println(" Date().time : ${Date().time}")
-                        println(" Date: $date")
-                        println(" noteTitle: ${editTitle.text.toString()}")
-                        println(" noteDescription: ${editDescription.text.toString()}")
-                        noteEntity.pkId = Date().time
-                        noteEntity.noteDate = date
-                        noteEntity.noteTitle = editTitle.text.toString()
-                        noteEntity.noteDescription = editDescription.text.toString()
-                        noteDB.noteDAO().updateAndSaveNote(noteEntity)
+                        if (action == "edit"){
+                            var noteEntity = NoteEntity()
+                            noteEntity.pkId = extract.getLong("pk")
+                            noteEntity.noteDate = extract.getString("date")
+                            noteEntity.noteTitle = editTitle.text.toString()
+                            noteEntity.noteDescription = editDescription.text.toString()
+                            noteDB.noteDAO().updateAndSaveNote(noteEntity)
+                        }else{
+                            val pattern = "dd-MMM-yyyy"
+                            val simpleDateFormat = SimpleDateFormat(pattern)
+                            val date: String = simpleDateFormat.format(Date())
+                            var noteEntity = NoteEntity()
+                            noteEntity.pkId = Date().time
+                            noteEntity.noteDate = date
+                            noteEntity.noteTitle = editTitle.text.toString()
+                            noteEntity.noteDescription = editDescription.text.toString()
+                            noteDB.noteDAO().updateAndSaveNote(noteEntity)
+                        }
                         finish()
-
                     } catch (e: Exception) {
                         println("+++++++++++++++++++++++++++++++: Error: $e")
                     }

@@ -13,7 +13,7 @@ import com.rohit.encrypto.database.NoteEntity
 class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapter<CardAdapter.ViewHolder>() {
     private var context: Context = context
     private var noteList: List<NoteEntity> = list
-    private var editTrustedUserInfoClickListener: EditClickListener? = null
+    var editTrustedUserInfoClickListener: EditClickListener? = null
     var deleteTrustedUserClickListener: DeleteClickListener? = null
     var unHideTrustedUserInfoClickListener: UnHideClickListener? = null
 
