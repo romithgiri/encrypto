@@ -53,7 +53,7 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.date.text = noteList[position].noteDate
         holder.title.text = noteList[position].noteTitle
-        holder.description.text = "*********************"
+        holder.description.visibility = View.GONE
 
         holder.delete.setOnClickListener {
             deleteTrustedUserClickListener?.onBtnClick(noteList[position])
@@ -69,5 +69,8 @@ class CardAdapter(context: Context, list: List<NoteEntity>) : RecyclerView.Adapt
         }
     }
 
-
+    fun updateDataInRecyclerView(list: MutableList<NoteEntity>) {
+        noteList = list
+        notifyDataSetChanged()
+    }
 }

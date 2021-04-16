@@ -1,5 +1,6 @@
 package com.rohit.encrypto.screens
 
+import android.app.Application
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -15,6 +16,7 @@ import java.util.concurrent.Executor
 class Auth : AppCompatActivity() {
     private lateinit var executor: Executor
     private lateinit var biometricManager: BiometricManager
+    private lateinit var biometricPrompt: BiometricPrompt
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,39 +38,37 @@ class Auth : AppCompatActivity() {
 
     private fun authUser(executor: Executor) {
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Encrypto")
-            .setSubtitle("Authentication Required!")
-            .setDescription("Please Authenticate to be able to view your notes")
-            .setDeviceCredentialAllowed(true)
-            .build()
+                .setTitle("Encrypto")
+                .setSubtitle("Authentication Required!")
+                .setDescription("Please Authenticate to be able to view your notes")
+                .setDeviceCredentialAllowed(true)
+                .setConfirmationRequired(true)
+                .build()
 
-        val biometricPrompt = BiometricPrompt(this, executor,
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(
-                    result: BiometricPrompt.AuthenticationResult
-                ) {
-                    super.onAuthenticationSucceeded(result)
-                    showToast("Authentication Pass")
-                    startActivity(Intent(this@Auth, MainActivity::class.java))
+        biometricPrompt = BiometricPrompt(this, executor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        super.onAuthenticationSucceeded(result)
+                        biometricPrompt.cancelAuthentication()
+                        //showToast("Authentication Pass")
+                        //startActivity(Intent(this@Auth, MainActivity::class.java))
+                    }
+
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        super.onAuthenticationError(errorCode, errString)
+                        finishAffinity()
+                    }
+
+                    override fun onAuthenticationFailed() {
+                        super.onAuthenticationFailed()
+                        showToast("Authentication Fail")
+                    }
                 }
-
-                override fun onAuthenticationError(
-                    errorCode: Int, errString: CharSequence
-                ) {
-                    super.onAuthenticationError(errorCode, errString)
-                    showToast("Authentication Fail")
-                }
-
-                override fun onAuthenticationFailed() {
-                    super.onAuthenticationFailed()
-
-                }
-            }
         )
         biometricPrompt.authenticate(promptInfo)
     }
 
-    fun showToast(msg: String){
-        Toast.makeText(this, msg , Toast.LENGTH_SHORT).show()
+    fun showToast(msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 }

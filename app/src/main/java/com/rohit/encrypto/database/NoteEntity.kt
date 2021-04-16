@@ -3,7 +3,6 @@ package com.rohit.encrypto.database
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.rohit.encrypto.encryption_decryption.EncAndDecUtil
 
 @Entity
 class NoteEntity {

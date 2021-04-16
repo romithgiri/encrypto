@@ -14,14 +14,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Encrypto">
 
-        <activity android:name=".screens.Auth">
+        <activity android:name=".screens.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".screens.MainActivity" />
+        <activity android:name=".screens.Auth" />
         <activity android:name=".screens.CreateNote" />
     </application>
 

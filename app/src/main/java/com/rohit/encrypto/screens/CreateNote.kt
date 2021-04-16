@@ -11,7 +11,7 @@ import com.google.gson.Gson
 import com.rohit.encrypto.R
 import com.rohit.encrypto.database.NoteDB
 import com.rohit.encrypto.database.NoteEntity
-import com.rohit.encrypto.encryption_decryption.EncAndDecUtil
+import com.rohit.encrypto.utils.EncAndDecUtil
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.lang.Exception

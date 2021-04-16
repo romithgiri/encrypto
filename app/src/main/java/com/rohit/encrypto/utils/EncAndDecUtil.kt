@@ -1,4 +1,4 @@
-package com.rohit.encrypto.encryption_decryption
+package com.rohit.encrypto.utils
 
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
