@@ -79,8 +79,8 @@
                                             <option name="values">
                                               <map>
                                                 <entry key="color" value="000000" />
-                                                <entry key="imagePath" value="C:\RohitData\RohitData\apktool\icon.png" />
-                                                <entry key="scalingPercent" value="51" />
+                                                <entry key="imagePath" value="C:\Users\Rohit\Downloads\3.png" />
+                                                <entry key="scalingPercent" value="78" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -113,7 +113,7 @@
                                   <option name="values">
                                     <map>
                                       <entry key="backgroundAssetType" value="COLOR" />
-                                      <entry key="backgroundColor" value="ffffff" />
+                                      <entry key="backgroundColor" value="31af91" />
                                     </map>
                                   </option>
                                 </PersistentState>
@@ -307,7 +307,7 @@
                                 <PersistentState>
                                   <option name="values">
                                     <map>
-                                      <entry key="url" value="file:/$USER_HOME$/AppData/Local/Android/Sdk/icons/material/materialicons/menu/baseline_menu_24.xml" />
+                                      <entry key="url" value="file:/$USER_HOME$/AppData/Local/Android/Sdk/icons/material/materialicons/lock_open/baseline_lock_open_24.xml" />
                                     </map>
                                   </option>
                                 </PersistentState>
@@ -318,7 +318,7 @@
                         <option name="values">
                           <map>
                             <entry key="color" value="ffffff" />
-                            <entry key="outputName" value="menu" />
+                            <entry key="outputName" value="key" />
                             <entry key="sourceFile" value="C:\RohitData\temp\Encrypto" />
                           </map>
                         </option>

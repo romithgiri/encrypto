@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/app_background"
+    tools:context=".screens.KeySteup">
+
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/mKeySetupToolBar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_44sdp"
+        android:background="@color/app_background"
+        android:backgroundTint="@color/app_background"
+        android:elevation="@dimen/_6sdp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnKeySetupBack"
+            android:layout_width="@dimen/_30sdp"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:scaleType="fitCenter"
+            android:src="@drawable/back_arrow" />
+
+        <TextView
+            android:id="@+id/mKeySetupTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="@dimen/_20sdp"
+            android:gravity="center"
+            android:text="Setup Your One Time Account Key"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_15ssp" />
+
+    </androidx.appcompat.widget.Toolbar>
+
+    <TextView
+        android:id="@+id/mGeneratedKeyTextView"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_35sdp"
+        android:layout_marginStart="@dimen/_5sdp"
+        android:layout_marginTop="@dimen/_5sdp"
+        android:layout_marginEnd="@dimen/_35sdp"
+        android:gravity="center"
+        android:text="No One Time Account Key Generated"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_14ssp"
+        app:layout_constraintTop_toBottomOf="@+id/mKeySetupToolBar" />
+
+    <ImageButton
+        android:id="@+id/btnCopyIt"
+        android:layout_width="@dimen/_35sdp"
+        android:layout_height="@dimen/_35sdp"
+        android:layout_marginTop="@dimen/_5sdp"
+        android:backgroundTint="@android:color/transparent"
+        android:scaleType="fitCenter"
+        android:src="@drawable/copy"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/mKeySetupToolBar" />
+
+    <Button
+        android:id="@+id/btnGeneratedKey"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/_47sdp"
+        android:layout_marginTop="@dimen/_2sdp"
+        android:backgroundTint="@color/primary"
+        android:text="Generate Your Account Key"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/mGeneratedKeyTextView" />
+
+    <View
+        android:id="@+id/viewLine1"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:background="@color/white"
+        app:layout_constraintTop_toBottomOf="@+id/btnGeneratedKey" />
+
+    <TextView
+        android:id="@+id/txtKeySetupTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/_6sdp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:text="Setup Your Old Account"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_16ssp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/viewLine1" />
+
+    <EditText
+        android:id="@+id/etOldKey"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_40sdp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:layout_weight="2"
+        android:width="0dp"
+        android:background="@drawable/edit_text_box_style"
+        android:hint="Enter Your Account Key Here..."
+        android:padding="8dp"
+        android:textColor="@color/white"
+        android:textColorHint="@color/white"
+        android:textSize="@dimen/_14sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/txtKeySetupTitle"
+        app:layout_constraintWidth_percent=".9" />
+
+    <Button
+        android:id="@+id/btnSaveOldKey"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/_47sdp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:backgroundTint="@color/primary"
+        android:text="Save Your Account Key"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/etOldKey" />
+
+    <View
+        android:id="@+id/viewLine2"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:background="@color/white"
+        app:layout_constraintTop_toBottomOf="@+id/btnSaveOldKey" />
+
+    <TextView
+        android:id="@+id/txtKeySetupNote"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/_6sdp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:text="How To Use"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_16ssp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/viewLine2" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintHeight_percent="0.35"
+        android:layout_marginTop="@dimen/_5sdp"
+        app:layout_constraintTop_toBottomOf="@+id/txtKeySetupNote">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/_6sdp"
+                android:text="1. Create your one time account key.\n2. Copy it and paste it into save account key box.\n3. Also save this account key some safe place for future use.\n4. This generated one account key will help you for database restoration.\n5. How to restore data using key? Click on restore option -> browse and select backup database file. That's it. Pretty simple right 😋.\n\nSave your important data offline because nothing is secure on internet."
+                android:textColor="@color/white"
+                android:textSize="@dimen/_14ssp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintWidth_percent="0.95" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

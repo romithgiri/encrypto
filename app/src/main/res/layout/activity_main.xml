@@ -73,7 +73,8 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/mRecyclerView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginTop="@dimen/_44sdp"
         app:layout_constraintTop_toBottomOf="@+id/mHomeScreenToolBar" />
 
     <include layout="@layout/layout_fab_submenu"/>
@@ -99,7 +100,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="No note created yet 😔"
+        android:text="No note created yet."
         android:textColor="@color/white"
         android:textSize="@dimen/_18ssp"
         android:textStyle="normal"

@@ -5,7 +5,9 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -21,6 +23,7 @@ import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -30,13 +33,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.gson.Gson
 import com.rohit.encrypto.R
 import com.rohit.encrypto.database.NoteDB
 import com.rohit.encrypto.database.NoteEntity
 import com.rohit.encrypto.recycler_view.CardAdapter
-import com.rohit.encrypto.utils.EncAndDecUtil
 import com.rohit.encrypto.utils.SearchState
+import com.rohit.encrypto.utils.SecurityHelper
 import com.rohit.encrypto.utils.StoragePermissionCheck
 import ir.androidexception.roomdatabasebackupandrestore.Backup
 import ir.androidexception.roomdatabasebackupandrestore.Restore
@@ -70,9 +72,11 @@ class MainActivity : AppCompatActivity() {
     private var fabCreate: FloatingActionButton? = null
     private var fabRestore: FloatingActionButton? = null
     private var fabBackup: FloatingActionButton? = null
+    private var fabKeySetup: FloatingActionButton? = null
     private var layoutFabCreateNote: LinearLayout? = null
     private var layoutFabRestore: LinearLayout? = null
     private var layoutFabBackup: LinearLayout? = null
+    private var layoutFabKeySetup: LinearLayout? = null
 
     // Storage Permissions
     private val REQUEST_PERMISSION = 1
@@ -83,6 +87,8 @@ class MainActivity : AppCompatActivity() {
     )
 
     private var databaseTask: Boolean = false
+    private lateinit var sharedPreference: SharedPreferences
+    private lateinit var editor: SharedPreferences.Editor
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,9 +104,11 @@ class MainActivity : AppCompatActivity() {
         fabCreate = findViewById<View>(R.id.fabCreateNote) as FloatingActionButton
         fabBackup = findViewById<View>(R.id.fabBackup) as FloatingActionButton
         fabRestore = findViewById<View>(R.id.fabRestore) as FloatingActionButton
+        fabKeySetup = findViewById<View>(R.id.fabKeySetup) as FloatingActionButton
         layoutFabCreateNote = findViewById<View>(R.id.layoutFabCreateNote) as LinearLayout
         layoutFabRestore = findViewById<View>(R.id.layoutFabRestore) as LinearLayout
         layoutFabBackup = findViewById<View>(R.id.layoutFabBackup) as LinearLayout
+        layoutFabKeySetup = findViewById<View>(R.id.layoutFabKeySetup) as LinearLayout
         //room DB
         noteDB = Room.databaseBuilder(this, NoteDB::class.java, "NoteDB").build()
         btnCreate = findViewById(R.id.btnCrete)
@@ -156,13 +164,20 @@ class MainActivity : AppCompatActivity() {
             restoreBackup()
         }
 
-        //Only main FAB is visible in the beginning
-        closeSubMenusFab()
+        fabKeySetup!!.setOnClickListener {
+            startActivity(Intent(this, KeySteup::class.java))
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        sharedPreference = getSharedPreferences(
+            "kjfowif93e9",
+            Context.MODE_PRIVATE
+        )
+        editor = sharedPreference.edit()
         setDataInRecyclerView()
+        closeSubMenusFab()
     }
 
     //closes FAB submenus
@@ -170,6 +185,7 @@ class MainActivity : AppCompatActivity() {
         layoutFabCreateNote!!.visibility = View.INVISIBLE
         layoutFabRestore!!.visibility = View.INVISIBLE
         layoutFabBackup!!.visibility = View.INVISIBLE
+        layoutFabKeySetup!!.visibility = View.INVISIBLE
         fabMenu!!.setImageResource(R.drawable.menu)
         fabExpanded = false
     }
@@ -179,6 +195,7 @@ class MainActivity : AppCompatActivity() {
         layoutFabCreateNote!!.visibility = View.VISIBLE
         layoutFabRestore!!.visibility = View.VISIBLE
         layoutFabBackup!!.visibility = View.VISIBLE
+        layoutFabKeySetup!!.visibility = View.VISIBLE
         fabMenu!!.setImageResource(R.drawable.clear)
         fabExpanded = true
     }
@@ -186,6 +203,7 @@ class MainActivity : AppCompatActivity() {
     private fun setDataInRecyclerView() {
         GlobalScope.launch {
             noteList = noteDB.noteDAO().getAllNotes()
+            noteList.sortBy { noteEntity: NoteEntity -> noteEntity.noteTitle }
             runOnUiThread {
                 try {
                     adapter = CardAdapter(
@@ -206,12 +224,7 @@ class MainActivity : AppCompatActivity() {
                     adapter.deleteTrustedUserClickListener =
                         object : CardAdapter.DeleteClickListener {
                             override fun onBtnClick(noteEntity: NoteEntity) {
-                                GlobalScope.launch {
-                                    noteDB.noteDAO().deleteNote(noteEntity)
-                                    runOnUiThread {
-                                        setDataInRecyclerView()
-                                    }
-                                }
+                                deleteConfirmation(noteEntity)
                             }
                         }
 
@@ -235,37 +248,35 @@ class MainActivity : AppCompatActivity() {
                                 holder: CardAdapter.ViewHolder,
                                 toggle: Boolean
                             ) {
-                                val oa1 = ObjectAnimator.ofFloat(holder.cardView, "scaleX", 1f, 0f)
-                                val oa2 = ObjectAnimator.ofFloat(holder.cardView, "scaleX", 0f, 1f)
-                                oa1.interpolator = DecelerateInterpolator()
-                                oa2.interpolator = AccelerateDecelerateInterpolator()
-                                oa1.addListener(object : AnimatorListenerAdapter() {
-                                    override fun onAnimationEnd(animation: Animator) {
-                                        super.onAnimationEnd(animation)
-                                        if (toggle) {
-                                            val obj: EncAndDecUtil.SecuredData = Gson().fromJson(
-                                                noteEntity.noteDescription,
-                                                EncAndDecUtil.SecuredData::class.java
-                                            )
-                                            var decryptedDataStr =
-                                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-                                                    EncAndDecUtil().decryptString(
-                                                        obj.value,
-                                                        obj.encryptedValue
+                                var oldKey = sharedPreference.getString("OneTimeKey", null)
+                                if (oldKey.isNullOrBlank()) {
+                                    showToast("Please setup your one time account key first.")
+                                } else {
+                                    val oa1 =
+                                        ObjectAnimator.ofFloat(holder.cardView, "scaleX", 1f, 0f)
+                                    val oa2 =
+                                        ObjectAnimator.ofFloat(holder.cardView, "scaleX", 0f, 1f)
+                                    oa1.interpolator = DecelerateInterpolator()
+                                    oa2.interpolator = AccelerateDecelerateInterpolator()
+                                    oa1.addListener(object : AnimatorListenerAdapter() {
+                                        override fun onAnimationEnd(animation: Animator) {
+                                            super.onAnimationEnd(animation)
+                                            if (toggle) {
+                                                holder.description.text =
+                                                    SecurityHelper().decryptAES(
+                                                        noteEntity.noteDescription,
+                                                        oldKey
                                                     )
-                                                } else {
-                                                    null
-                                                }
-                                            holder.description.text = decryptedDataStr
-                                            holder.description.visibility = View.VISIBLE
-                                            //cardView.setImageResource(R.drawable.frontSide)
-                                        } else {
-                                            holder.description.visibility = View.GONE
+                                                holder.description.visibility = View.VISIBLE
+                                                //cardView.setImageResource(R.drawable.frontSide)
+                                            } else {
+                                                holder.description.visibility = View.GONE
+                                            }
+                                            oa2.start()
                                         }
-                                        oa2.start()
-                                    }
-                                })
-                                oa1.start()
+                                    })
+                                    oa1.start()
+                                }
                             }
                         }
                 } catch (e: Exception) {
@@ -304,31 +315,38 @@ class MainActivity : AppCompatActivity() {
 
     private fun createBackup() {
         databaseTask = false
-        if (SDK_INT >= Build.VERSION_CODES.M) {
-            if (StoragePermissionCheck.checkPermission(this)) {
-                executeBackupTask()
-            } else {
-                requestForStoragePermission()
+        if (!sharedPreference.getString("OneTimeKey", null).isNullOrBlank()) {
+            if (SDK_INT >= Build.VERSION_CODES.M) {
+                if (StoragePermissionCheck.checkPermission(this)) {
+                    executeBackupTask()
+                } else {
+                    requestForStoragePermission()
+                }
             }
+        }else{
+            showToast("Please setup your one time account key first.")
         }
     }
 
     private fun restoreBackup() {
         databaseTask = true
-        if (SDK_INT >= Build.VERSION_CODES.M) {
-            if (StoragePermissionCheck.checkPermission(this)) {
-                val chooseFile = Intent(Intent.ACTION_GET_CONTENT)
-                chooseFile.addCategory(Intent.CATEGORY_OPENABLE)
-                chooseFile.type = "text/plain"
-                startActivityForResult(
-                    Intent.createChooser(chooseFile, "Choose a file"),
-                    PICKFILE_RESULT_CODE
-                )
-            } else {
-                requestForStoragePermission()
+        if (!sharedPreference.getString("OneTimeKey", null).isNullOrBlank()) {
+            if (SDK_INT >= Build.VERSION_CODES.M) {
+                if (StoragePermissionCheck.checkPermission(this)) {
+                    val chooseFile = Intent(Intent.ACTION_GET_CONTENT)
+                    chooseFile.addCategory(Intent.CATEGORY_OPENABLE)
+                    chooseFile.type = "text/plain"
+                    startActivityForResult(
+                        Intent.createChooser(chooseFile, "Choose a file"),
+                        PICKFILE_RESULT_CODE
+                    )
+                } else {
+                    requestForStoragePermission()
+                }
             }
+        } else {
+            showToast("Please setup your one time account key first.")
         }
-
     }
 
     private fun executeRestoreTask(filePath: String) {
@@ -343,13 +361,12 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     showToast("Error: Backup restoration fail")
                 }
-                println("=============================== success : $success and ========= message: $message")
             }
             .execute()
     }
 
     private fun executeBackupTask() {
-        try{
+        try {
             var backupPath = File(application.externalCacheDir, "backup")
             val finalPathOfBackupFileSubstring: String =
                 backupPath.path.substring(0, backupPath.path.indexOf("/Android"))
@@ -369,7 +386,7 @@ class MainActivity : AppCompatActivity() {
                     showToast("Backup created successfully at path: $finalPathOfBackupFile")
                 }
                 .execute()
-        }catch (e: java.lang.Exception){
+        } catch (e: java.lang.Exception) {
             Log.e("TAG", "Error: $e")
         }
     }
@@ -423,7 +440,6 @@ class MainActivity : AppCompatActivity() {
                 if (data != null) {
                     val selectedFile = data.data //The uri with the location of the file
                     if (selectedFile != null) {
-                        println("====================== selectedFile: $selectedFile")
                         executeRestoreTask(selectedFile.path!!)
                     } else {
                         showToast("Error: no file selected")
@@ -462,6 +478,46 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+
+    fun deleteConfirmation(noteEntity: NoteEntity) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Delete")
+        builder.setMessage("Do your want to Delete?")
+        builder.setPositiveButton("Delete") { dialog, which ->
+            GlobalScope.launch {
+                noteDB.noteDAO().deleteNote(noteEntity)
+                runOnUiThread {
+                    setDataInRecyclerView()
+                    dialog.dismiss()
+                }
+            }
+        }
+        builder.setNegativeButton("Cancel") { dialog, which ->
+            dialog.dismiss()
+        }
+        builder.setCancelable(false)
+        builder.show()
+    }
+
+    /*private fun deleteConfirmation(noteEntity: NoteEntity): AlertDialog {
+        return AlertDialog.Builder(this) // set message, title, and icon
+            .setTitle("Delete")
+            .setMessage("Do you want to Delete")
+            .setIcon(R.drawable.delete)
+            .setPositiveButton("Delete") { dialog, whichButton ->
+                //your deleting code
+                GlobalScope.launch {
+                    noteDB.noteDAO().deleteNote(noteEntity)
+                    runOnUiThread {
+                        setDataInRecyclerView()
+                        dialog.dismiss()
+                    }
+                }
+            }
+            .setNegativeButton("cancel") { dialog, which -> dialog.dismiss() }
+            .create()
+    }*/
 
     /** For fingerprint auth*/
     private fun authCheck() {

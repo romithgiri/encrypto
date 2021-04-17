@@ -1,5 +1,7 @@
 package com.rohit.encrypto.screens
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.EditText
@@ -13,6 +15,7 @@ import com.rohit.encrypto.R
 import com.rohit.encrypto.database.NoteDB
 import com.rohit.encrypto.database.NoteEntity
 import com.rohit.encrypto.utils.EncAndDecUtil
+import com.rohit.encrypto.utils.SecurityHelper
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.lang.Exception
@@ -27,9 +30,13 @@ class CreateNote : AppCompatActivity() {
     private lateinit var editDescription: EditText
     private lateinit var backBtn: ImageButton
 
+    private lateinit var sharedPreference: SharedPreferences
+    private lateinit var editor: SharedPreferences.Editor
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_create_note)
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
 
         noteDB = Room.databaseBuilder(this, NoteDB::class.java, "NoteDB").build()
         btnSave = findViewById(R.id.btnSave)
@@ -40,21 +47,25 @@ class CreateNote : AppCompatActivity() {
         var extract = intent.extras
         action = extract!!.getString("action").toString()
 
-        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        );
 
         if (action == "edit") {
             editTitle.setText(extract.getString("title").toString())
-            val obj: EncAndDecUtil.SecuredData = Gson().fromJson(extract.getString("description"), EncAndDecUtil.SecuredData::class.java)
-            var decryptedDataStr = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-                EncAndDecUtil().decryptString(
-                    obj.value,
-                    obj.encryptedValue
+            sharedPreference = getSharedPreferences("kjfowif93e9", Context.MODE_PRIVATE)
+            editor = sharedPreference.edit()
+            var oldKey = sharedPreference.getString("OneTimeKey", null)
+            if (oldKey.isNullOrBlank()) {
+                showToast("Please setup your one time account key first.")
+            }else{
+                var decryptedDataStr = SecurityHelper().decryptAES(
+                    extract.getString("description"),
+                    oldKey
                 )
-            } else {
-                null
+                editDescription.setText(decryptedDataStr)
             }
-            println("======================== val 1: $decryptedDataStr")
-            editDescription.setText(decryptedDataStr)
         }
 
         backBtn.setOnClickListener {
@@ -83,14 +94,31 @@ class CreateNote : AppCompatActivity() {
                             noteEntity.noteDate = date
                         }
                         noteEntity.noteTitle = editTitle.text.toString()
-                        noteEntity.noteDescription = Gson().toJson(EncAndDecUtil().encryptString(editDescription.text.toString()))
-                        noteDB.noteDAO().updateAndSaveNote(noteEntity)
-                        finish()
+                        //noteEntity.noteDescription = Gson().toJson(EncAndDecUtil().encryptString(editDescription.text.toString()))
+                        sharedPreference = getSharedPreferences("kjfowif93e9", Context.MODE_PRIVATE)
+                        editor = sharedPreference.edit()
+                        var oldKey = sharedPreference.getString("OneTimeKey", null)
+                        if (oldKey.isNullOrBlank()) {
+                            runOnUiThread {
+                                showToast("Please setup your one time account key first.")
+                            }
+                        } else {
+                            noteEntity.noteDescription = SecurityHelper().encryptAES(
+                                editDescription.text.toString(),
+                                oldKey
+                            )
+                            noteDB.noteDAO().updateAndSaveNote(noteEntity)
+                            finish()
+                        }
                     } catch (e: Exception) {
                         println("+++++++++++++++++++++++++++++++: Error: $e")
                     }
                 }
             }
         }
+    }
+
+    private fun showToast(msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 }
