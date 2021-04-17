@@ -4,13 +4,18 @@ import android.Manifest
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Environment
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -32,6 +37,9 @@ import com.rohit.encrypto.database.NoteEntity
 import com.rohit.encrypto.recycler_view.CardAdapter
 import com.rohit.encrypto.utils.EncAndDecUtil
 import com.rohit.encrypto.utils.SearchState
+import com.rohit.encrypto.utils.StoragePermissionCheck
+import ir.androidexception.roomdatabasebackupandrestore.Backup
+import ir.androidexception.roomdatabasebackupandrestore.Restore
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.*
@@ -60,15 +68,21 @@ class MainActivity : AppCompatActivity() {
     private var fabExpanded = false
     private var fabMenu: FloatingActionButton? = null
     private var fabCreate: FloatingActionButton? = null
-    /*private var fabRestore: FloatingActionButton? = null
-    private var fabBackup: FloatingActionButton? = null*/
+    private var fabRestore: FloatingActionButton? = null
+    private var fabBackup: FloatingActionButton? = null
     private var layoutFabCreateNote: LinearLayout? = null
-    /*private var layoutFabRestore: LinearLayout? = null
-    private var layoutFabBackup: LinearLayout? = null*/
+    private var layoutFabRestore: LinearLayout? = null
+    private var layoutFabBackup: LinearLayout? = null
 
     // Storage Permissions
     private val REQUEST_PERMISSION = 1
-    private val PERMISSIONS = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    private val PICKFILE_RESULT_CODE = 2
+    private val PERMISSIONS = arrayOf(
+        Manifest.permission.READ_EXTERNAL_STORAGE,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE
+    )
+
+    private var databaseTask: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,11 +96,11 @@ class MainActivity : AppCompatActivity() {
         //for floating button
         fabMenu = findViewById<View>(R.id.fabMenu) as FloatingActionButton
         fabCreate = findViewById<View>(R.id.fabCreateNote) as FloatingActionButton
-        /*fabBackup = findViewById<View>(R.id.fabBackup) as FloatingActionButton
-        fabRestore = findViewById<View>(R.id.fabRestore) as FloatingActionButton*/
+        fabBackup = findViewById<View>(R.id.fabBackup) as FloatingActionButton
+        fabRestore = findViewById<View>(R.id.fabRestore) as FloatingActionButton
         layoutFabCreateNote = findViewById<View>(R.id.layoutFabCreateNote) as LinearLayout
-        /*layoutFabRestore = findViewById<View>(R.id.layoutFabRestore) as LinearLayout
-        layoutFabBackup = findViewById<View>(R.id.layoutFabBackup) as LinearLayout*/
+        layoutFabRestore = findViewById<View>(R.id.layoutFabRestore) as LinearLayout
+        layoutFabBackup = findViewById<View>(R.id.layoutFabBackup) as LinearLayout
         //room DB
         noteDB = Room.databaseBuilder(this, NoteDB::class.java, "NoteDB").build()
         btnCreate = findViewById(R.id.btnCrete)
@@ -99,7 +113,10 @@ class MainActivity : AppCompatActivity() {
         //other init method
         authCheck()
         searchUIState(SearchState.CLEAR)
-        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        );
 
         fabCreate!!.setOnClickListener {
             var intent = Intent(this, CreateNote::class.java)
@@ -131,9 +148,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        /*fabBackup!!.setOnClickListener {
+        fabBackup!!.setOnClickListener {
             createBackup()
-        }*/
+        }
+
+        fabRestore!!.setOnClickListener {
+            restoreBackup()
+        }
 
         //Only main FAB is visible in the beginning
         closeSubMenusFab()
@@ -147,8 +168,8 @@ class MainActivity : AppCompatActivity() {
     //closes FAB submenus
     private fun closeSubMenusFab() {
         layoutFabCreateNote!!.visibility = View.INVISIBLE
-        /*layoutFabRestore!!.visibility = View.INVISIBLE
-        layoutFabBackup!!.visibility = View.INVISIBLE*/
+        layoutFabRestore!!.visibility = View.INVISIBLE
+        layoutFabBackup!!.visibility = View.INVISIBLE
         fabMenu!!.setImageResource(R.drawable.menu)
         fabExpanded = false
     }
@@ -156,9 +177,8 @@ class MainActivity : AppCompatActivity() {
     //Opens FAB submenus
     private fun openSubMenusFab() {
         layoutFabCreateNote!!.visibility = View.VISIBLE
-        /*layoutFabRestore!!.visibility = View.VISIBLE
-        layoutFabBackup!!.visibility = View.VISIBLE*/
-        //Change settings icon to 'X' icon
+        layoutFabRestore!!.visibility = View.VISIBLE
+        layoutFabBackup!!.visibility = View.VISIBLE
         fabMenu!!.setImageResource(R.drawable.clear)
         fabExpanded = true
     }
@@ -169,81 +189,87 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 try {
                     adapter = CardAdapter(
-                            this@MainActivity,
-                            noteList
+                        this@MainActivity,
+                        noteList
                     )
                     recyclerView!!.adapter = adapter
                     adapter.notifyDataSetChanged()
 
-                    if (noteList.isNullOrEmpty()){
+                    if (noteList.isNullOrEmpty()) {
                         txtNoData.visibility = View.VISIBLE
                         recyclerView!!.visibility = View.GONE
-                    }else{
+                    } else {
                         txtNoData.visibility = View.GONE
                         recyclerView!!.visibility = View.VISIBLE
                     }
 
-                    adapter.deleteTrustedUserClickListener = object : CardAdapter.DeleteClickListener {
-                        override fun onBtnClick(noteEntity: NoteEntity) {
-                            GlobalScope.launch {
-                                noteDB.noteDAO().deleteNote(noteEntity)
-                                runOnUiThread {
-                                    setDataInRecyclerView()
+                    adapter.deleteTrustedUserClickListener =
+                        object : CardAdapter.DeleteClickListener {
+                            override fun onBtnClick(noteEntity: NoteEntity) {
+                                GlobalScope.launch {
+                                    noteDB.noteDAO().deleteNote(noteEntity)
+                                    runOnUiThread {
+                                        setDataInRecyclerView()
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    adapter.editTrustedUserInfoClickListener = object : CardAdapter.EditClickListener {
-                        override fun onBtnClick(noteEntity: NoteEntity) {
-                            var intent = Intent(this@MainActivity, CreateNote::class.java)
-                            intent.putExtra("action", "edit")
-                            intent.putExtra("pk", noteEntity.pkId)
-                            intent.putExtra("title", noteEntity.noteTitle)
-                            intent.putExtra("description", noteEntity.noteDescription)
-                            intent.putExtra("date", noteEntity.noteDate)
-                            startActivity(intent)
+                    adapter.editTrustedUserInfoClickListener =
+                        object : CardAdapter.EditClickListener {
+                            override fun onBtnClick(noteEntity: NoteEntity) {
+                                var intent = Intent(this@MainActivity, CreateNote::class.java)
+                                intent.putExtra("action", "edit")
+                                intent.putExtra("pk", noteEntity.pkId)
+                                intent.putExtra("title", noteEntity.noteTitle)
+                                intent.putExtra("description", noteEntity.noteDescription)
+                                intent.putExtra("date", noteEntity.noteDate)
+                                startActivity(intent)
+                            }
                         }
-                    }
 
-                    adapter.unHideTrustedUserInfoClickListener = object : CardAdapter.UnHideClickListener {
-                        override fun onBtnClick(
+                    adapter.unHideTrustedUserInfoClickListener =
+                        object : CardAdapter.UnHideClickListener {
+                            override fun onBtnClick(
                                 noteEntity: NoteEntity,
                                 holder: CardAdapter.ViewHolder,
                                 toggle: Boolean
-                        ) {
-                            val oa1 = ObjectAnimator.ofFloat(holder.cardView, "scaleX", 1f, 0f)
-                            val oa2 = ObjectAnimator.ofFloat(holder.cardView, "scaleX", 0f, 1f)
-                            oa1.interpolator = DecelerateInterpolator()
-                            oa2.interpolator = AccelerateDecelerateInterpolator()
-                            oa1.addListener(object : AnimatorListenerAdapter() {
-                                override fun onAnimationEnd(animation: Animator) {
-                                    super.onAnimationEnd(animation)
-                                    if (toggle) {
-                                        val obj: EncAndDecUtil.SecuredData = Gson().fromJson(noteEntity.noteDescription, EncAndDecUtil.SecuredData::class.java)
-                                        var decryptedDataStr = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-                                            EncAndDecUtil().decryptString(
-                                                    obj.value,
-                                                    obj.encryptedValue
+                            ) {
+                                val oa1 = ObjectAnimator.ofFloat(holder.cardView, "scaleX", 1f, 0f)
+                                val oa2 = ObjectAnimator.ofFloat(holder.cardView, "scaleX", 0f, 1f)
+                                oa1.interpolator = DecelerateInterpolator()
+                                oa2.interpolator = AccelerateDecelerateInterpolator()
+                                oa1.addListener(object : AnimatorListenerAdapter() {
+                                    override fun onAnimationEnd(animation: Animator) {
+                                        super.onAnimationEnd(animation)
+                                        if (toggle) {
+                                            val obj: EncAndDecUtil.SecuredData = Gson().fromJson(
+                                                noteEntity.noteDescription,
+                                                EncAndDecUtil.SecuredData::class.java
                                             )
+                                            var decryptedDataStr =
+                                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                                                    EncAndDecUtil().decryptString(
+                                                        obj.value,
+                                                        obj.encryptedValue
+                                                    )
+                                                } else {
+                                                    null
+                                                }
+                                            holder.description.text = decryptedDataStr
+                                            holder.description.visibility = View.VISIBLE
+                                            //cardView.setImageResource(R.drawable.frontSide)
                                         } else {
-                                            null
+                                            holder.description.visibility = View.GONE
                                         }
-                                        holder.description.text = decryptedDataStr
-                                        holder.description.visibility = View.VISIBLE
-                                        //cardView.setImageResource(R.drawable.frontSide)
-                                    } else {
-                                        holder.description.visibility = View.GONE
+                                        oa2.start()
                                     }
-                                    oa2.start()
-                                }
-                            })
-                            oa1.start()
+                                })
+                                oa1.start()
+                            }
                         }
-
-                    }
                 } catch (e: Exception) {
-                    println("================== noteList 4: $e")
+                    Log.e("TAG", "Error: $e")
                 }
             }
         }
@@ -267,11 +293,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun filter(text: String) {
-        println("===================== text1111:  $text")
         val temp: MutableList<NoteEntity> = ArrayList()
         for (obj in noteList) {
             if (obj.noteTitle!!.contains(text, true)) {
-                println("===================== text2222:  $text")
                 temp.add(obj)
             }
         }
@@ -279,70 +303,165 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createBackup() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (verifyStoragePermissions()){
-                dbBackupTask()
-            }else{
-                dbBackupTask()
+        databaseTask = false
+        if (SDK_INT >= Build.VERSION_CODES.M) {
+            if (StoragePermissionCheck.checkPermission(this)) {
+                executeBackupTask()
+            } else {
+                requestForStoragePermission()
             }
         }
     }
 
-    private fun dbBackupTask(){
-        try {
-            noteDB.close()
-            val dbfile: File = getDatabasePath("NoteDB")
-            val sdir: File = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "DBBackup")
-            val sfpath = sdir.path + File.separator + "DBBackup" + System.currentTimeMillis().toString()
-            println("====================== DB Backup Path: $sfpath")
-            if (!sdir.exists()) {
-                sdir.mkdirs()
+    private fun restoreBackup() {
+        databaseTask = true
+        if (SDK_INT >= Build.VERSION_CODES.M) {
+            if (StoragePermissionCheck.checkPermission(this)) {
+                val chooseFile = Intent(Intent.ACTION_GET_CONTENT)
+                chooseFile.addCategory(Intent.CATEGORY_OPENABLE)
+                chooseFile.type = "text/plain"
+                startActivityForResult(
+                    Intent.createChooser(chooseFile, "Choose a file"),
+                    PICKFILE_RESULT_CODE
+                )
+            } else {
+                requestForStoragePermission()
             }
-            val savefile = File(sfpath)
-            savefile.createNewFile()
-            val buffersize = 8 * 1024
-            val buffer = ByteArray(buffersize)
-            var bytes_read = buffersize
-            val savedb: OutputStream = FileOutputStream(sfpath)
-            val indb: InputStream = FileInputStream(dbfile)
-            while (indb.read(buffer, 0, buffersize).also { bytes_read = it } > 0) {
-                savedb.write(buffer, 0, bytes_read)
+        }
+
+    }
+
+    private fun executeRestoreTask(filePath: String) {
+        Restore.Init()
+            .database(noteDB)
+            .backupFilePath(filePath)
+            .secretKey("080910") // if your backup file is encrypted, this parameter is required
+            .onWorkFinishListener { success, message ->
+                if (success) {
+                    showToast("Database restored successfully")
+                    setDataInRecyclerView()
+                } else {
+                    showToast("Error: Backup restoration fail")
+                }
+                println("=============================== success : $success and ========= message: $message")
             }
-            savedb.flush()
-            indb.close()
-            savedb.close()
-            showToast("Database backup file path is: $sfpath")
-        } catch (e: java.lang.Exception) {
-            e.printStackTrace()
+            .execute()
+    }
+
+    private fun executeBackupTask() {
+        try{
+            var backupPath = File(application.externalCacheDir, "backup")
+            val finalPathOfBackupFileSubstring: String =
+                backupPath.path.substring(0, backupPath.path.indexOf("/Android"))
+            val filePath =
+                finalPathOfBackupFileSubstring + File.separator + "Documents" + File.separator + "backup"
+            if (!File(filePath).exists()) {
+                File(filePath).mkdir()
+            }
+            val fileName = "encrypto_backup" + System.currentTimeMillis().toString() + ".txt"
+            val finalPathOfBackupFile = filePath + File.separator + fileName
+            Backup.Init()
+                .database(noteDB)
+                .path(filePath)
+                .fileName(fileName)
+                .secretKey("080910") //optional
+                .onWorkFinishListener { success, message ->
+                    showToast("Backup created successfully at path: $finalPathOfBackupFile")
+                }
+                .execute()
+        }catch (e: java.lang.Exception){
+            Log.e("TAG", "Error: $e")
         }
     }
 
-
-    private fun verifyStoragePermissions(): Boolean {
-        val permissionWrite = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        val permissionRead = ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-        return if (permissionWrite != PackageManager.PERMISSION_GRANTED || permissionRead != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(
-                    this,
-                    PERMISSIONS,
-                    REQUEST_PERMISSION
-            )
-            false
+    //The below method can be used for requesting a permission in android 11 or below
+    private fun requestForStoragePermission() {
+        if (SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.addCategory("android.intent.category.DEFAULT")
+                intent.data = Uri.parse(
+                    String.format(
+                        "package:%s",
+                        applicationContext.packageName
+                    )
+                )
+                startActivityForResult(intent, 102)
+            } catch (e: Exception) {
+                val intent = Intent()
+                intent.action = Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
+                startActivityForResult(intent, 102)
+            }
         } else {
-            true
+            //below android 11
+            ActivityCompat.requestPermissions(
+                this,
+                PERMISSIONS,
+                REQUEST_PERMISSION
+            )
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String?>, grantResults: IntArray) {
-        if (requestCode == 1) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                dbBackupTask()
-            }else{
-                showToast("Please grant storage permission to create database backup")
+    //Handling permission callback for Android 11 or above versions
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 102) {
+            if (SDK_INT >= Build.VERSION_CODES.R) {
+                if (Environment.isExternalStorageManager()) {
+                    // perform action when allow permission success
+                    if (databaseTask) {
+                        restoreBackup()
+                    } else {
+                        executeBackupTask()
+                    }
+                } else {
+                    showToast("Allow permission for storage access!")
+                }
+            }
+        } else if (requestCode == PICKFILE_RESULT_CODE && resultCode == Activity.RESULT_OK) {
+            try {
+                if (data != null) {
+                    val selectedFile = data.data //The uri with the location of the file
+                    if (selectedFile != null) {
+                        println("====================== selectedFile: $selectedFile")
+                        executeRestoreTask(selectedFile.path!!)
+                    } else {
+                        showToast("Error: no file selected")
+                    }
+                } else {
+                    showToast("Error: no file selected")
+                }
+            } catch (e: Exception) {
+                Log.e("TAG", "Error: $e")
+                showToast("Error: no file selected")
             }
         }
     }
 
+    //Handling permission callback for OS versions below Android 11
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            REQUEST_PERMISSION -> if (grantResults.isNotEmpty()) {
+                val READ_EXTERNAL_STORAGE = grantResults[0] == PackageManager.PERMISSION_GRANTED
+                val WRITE_EXTERNAL_STORAGE = grantResults[1] == PackageManager.PERMISSION_GRANTED
+                if (READ_EXTERNAL_STORAGE && WRITE_EXTERNAL_STORAGE) {
+                    // perform action when allow permission success
+                    if (databaseTask) {
+                        restoreBackup()
+                    } else {
+                        executeBackupTask()
+                    }
+                } else {
+                    showToast("Allow permission for storage access!")
+                }
+            }
+        }
+    }
 
     /** For fingerprint auth*/
     private fun authCheck() {
@@ -356,32 +475,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun authUser(executor: Executor) {
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Encrypto")
-                //.setSubtitle("Authentication Required!")
-                .setDescription("This app uses biometric authentication to protect your data.")
-                .setDeviceCredentialAllowed(true)
-                .setConfirmationRequired(true)
-                .build()
+            .setTitle("Encrypto")
+            //.setSubtitle("Authentication Required!")
+            .setDescription("This app uses biometric authentication to protect your data.")
+            .setDeviceCredentialAllowed(true)
+            .setConfirmationRequired(true)
+            .build()
 
         biometricPrompt = BiometricPrompt(this, executor,
-                object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        super.onAuthenticationSucceeded(result)
-                        biometricPrompt.cancelAuthentication()
-                        //showToast("Authentication Pass")
-                        //startActivity(Intent(this@Auth, MainActivity::class.java))
-                    }
-
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        super.onAuthenticationError(errorCode, errString)
-                        finishAffinity()
-                    }
-
-                    override fun onAuthenticationFailed() {
-                        super.onAuthenticationFailed()
-                        showToast("Authentication Fail")
-                    }
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    biometricPrompt.cancelAuthentication()
+                    //showToast("Authentication Pass")
+                    //startActivity(Intent(this@Auth, MainActivity::class.java))
                 }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    finishAffinity()
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    showToast("Authentication Fail")
+                }
+            }
         )
         biometricPrompt.authenticate(promptInfo)
     }

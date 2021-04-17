@@ -53,7 +53,7 @@
 
     </LinearLayout>
 
-    <!--<LinearLayout
+    <LinearLayout
         android:id="@+id/layoutFabRestore"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -139,7 +139,7 @@
             app:backgroundTint="@color/optional"
             app:fabSize="mini" />
 
-    </LinearLayout>-->
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/layoutFabMenu"

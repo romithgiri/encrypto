@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId "com.rohit.encrypto"
-        minSdkVersion 16
+        minSdkVersion 17
         targetSdkVersion 30
         versionCode 1
         versionName "1.0"
@@ -56,4 +56,6 @@ dependencies {
     implementation 'androidx.biometric:biometric:1.1.0'
     //gson
     implementation 'com.google.code.gson:gson:2.8.6'
+    //db backup and restore
+    implementation 'com.github.salehyarahmadi:RoomDatabaseBackupAndRestore:v1.0.1'
 }
