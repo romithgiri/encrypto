@@ -2,7 +2,10 @@
 Save your text data in encrypted form locally in your device.
 
 1. Auth Check
-![ScreenShot](https://github.com/romithgiri/encrypto/blob/main/screenshots/1.png){:height="1024px" width="576px"}
+<img src="https://github.com/romithgiri/encrypto/blob/main/screenshots/1.png" width="576" height="1024" />
+
+1. Auth Check
+![ScreenShot](https://github.com/romithgiri/encrypto/blob/main/screenshots/1.png)
 
 2. Features
 ![ScreenShot](https://github.com/romithgiri/encrypto/blob/main/screenshots/6.png)
