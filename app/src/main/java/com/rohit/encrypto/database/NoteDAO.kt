@@ -1,7 +1,9 @@
 package com.rohit.encrypto.database
 
+import androidx.annotation.Keep
 import androidx.room.*
 
+@Keep
 @Dao
 interface NoteDAO {
     @Insert
